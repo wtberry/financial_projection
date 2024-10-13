@@ -127,7 +127,7 @@ def update_graph(n_clicks, initial_assets, one_time_amounts, one_time_dates, rec
     transactions = []
     for amount, date_str in zip(one_time_amounts, one_time_dates):
         date = datetime.strptime(date_str, '%Y-%m-%d')
-        transactions.append({'amount': amount, 'date': date})
+        transactions.append(Transaction(amount, date))
 
     # Convert frequency strings to number of days
     frequency_mapping = {

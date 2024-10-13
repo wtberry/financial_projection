@@ -3,18 +3,17 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
-from finance_projection import financial_projection_with_loans
-from transaction import RecurringTransaction, Transaction
 from datetime import datetime
-from loan import Loan
+from app.finance_projection import financial_projection_with_loans
+from app.loan import Loan
 
 # Initialize Dash app
 app = dash.Dash(__name__)
 
-# Define layout
+# App layout
 app.layout = html.Div([
-    html.H1("Financial Projection with Loans"),
-
+    html.H1("Financial Projection with Loans and Transactions"),
+    
     # Input for initial assets
     html.Div([
         html.H3("Initial Assets"),
@@ -23,12 +22,14 @@ app.layout = html.Div([
 
     html.Hr(),
 
-    # One-time Transaction Section
+    # One-time Transactions Section
     html.Div([
-        html.H3("One-time Transaction"),
+        html.H3("One-time Transactions"),
         html.Button("Add One-time Transaction", id="add_one_time_btn", n_clicks=0),
         html.Div(id="one_time_transaction_container", children=[]),
     ]),
+
+    html.Hr(),
 
     # Recurring Transactions Section
     html.Div([
@@ -38,7 +39,7 @@ app.layout = html.Div([
     ]),
 
     html.Hr(),
-    
+
     # Loan inputs
     html.Div([
         html.H3("Loan Parameters"),
@@ -50,13 +51,13 @@ app.layout = html.Div([
         dcc.Input(id='loan_payment', type='number', value=200),
         html.Label("Duration (months):"),
         dcc.Input(id='loan_duration', type='number', value=24),
-        html.Label("Start Date (YYYY/MM/DD):"),
+        html.Label("Start Date (YYYY-MM-DD):"),
         dcc.Input(id='loan_start_date', type='text', value=str(datetime.now().date())),
     ]),
-    
+
     # Button to run the simulation
     html.Button('Simulate', id='simulate_btn', n_clicks=0),
-
+    
     # Graph to display projection
     dcc.Graph(id='financial_projection_graph')
 ])
@@ -71,7 +72,7 @@ def add_one_time_transaction(n_clicks, existing_children):
     new_transaction_input = html.Div([
         html.Label(f'Transaction {n_clicks}:'),
         dcc.Input(id={'type': 'one_time_amount', 'index': n_clicks}, type='number', placeholder='Amount'),
-        dcc.Input(id={'type': 'one_time_date', 'index': n_clicks}, type='text', placeholder='YYYY/MM/DD'),
+        dcc.Input(id={'type': 'one_time_date', 'index': n_clicks}, type='text', placeholder='YYYY-MM-DD'),
         html.Br()
     ])
     existing_children.append(new_transaction_input)
@@ -86,24 +87,13 @@ def add_one_time_transaction(n_clicks, existing_children):
 def add_recurring_transaction(n_clicks, existing_children):
     new_transaction_input = html.Div([
         html.Label(f'Recurring Transaction {n_clicks}:'),
-        dcc.Input(id={'type': 'recurring_amount', 'index': n_clicks}, type='number', placeholder='Amount', value=380000),
-        dcc.Dropdown(
-            id={'type': 'recurring_frequency', 'index': n_clicks},
-            options=[
-                {'label': 'Daily', 'value': 'Daily'},
-                {'label': 'Weekly', 'value': 'Weekly'},
-                {'label': 'Monthly', 'value': 'Monthly'},
-                {'label': 'Yearly', 'value': 'Yearly'}
-            ],
-            placeholder="Frequency",
-            value='Monthly'
-        ),
+        dcc.Input(id={'type': 'recurring_amount', 'index': n_clicks}, type='number', placeholder='Amount'),
+        dcc.Input(id={'type': 'recurring_frequency', 'index': n_clicks}, type='text', placeholder='Frequency in Days'),
         dcc.Input(id={'type': 'recurring_start_date', 'index': n_clicks}, type='text', placeholder='Start Date (YYYY-MM-DD)'),
         html.Br()
     ])
     existing_children.append(new_transaction_input)
     return existing_children
-
 
 # Update graph when user clicks the simulate button
 @app.callback(
@@ -116,7 +106,7 @@ def add_recurring_transaction(n_clicks, existing_children):
      State({'type': 'recurring_frequency', 'index': dash.dependencies.ALL}, 'value'),
      State({'type': 'recurring_start_date', 'index': dash.dependencies.ALL}, 'value'),
      State('loan_principal', 'value'),
-     State('loan_interest', 'value'),   
+     State('loan_interest', 'value'),
      State('loan_payment', 'value'),
      State('loan_duration', 'value'),
      State('loan_start_date', 'value')]
@@ -127,23 +117,13 @@ def update_graph(n_clicks, initial_assets, one_time_amounts, one_time_dates, rec
     transactions = []
     for amount, date_str in zip(one_time_amounts, one_time_dates):
         date = datetime.strptime(date_str, '%Y-%m-%d')
-        transactions.append(Transaction(amount, date))
-
-    # Convert frequency strings to number of days
-    frequency_mapping = {
-        'Daily': 1,
-        'Weekly': 7,
-        'Monthly': 30,   # Approximate for simplicity
-        'Yearly': 365
-    }
+        transactions.append({'amount': amount, 'date': date})
 
     # Process recurring transactions
     recurring_transactions = []
-    for amount, frequency_str, start_date_str in zip(recurring_amounts, recurring_frequencies, recurring_start_dates):
+    for amount, frequency, start_date_str in zip(recurring_amounts, recurring_frequencies, recurring_start_dates):
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        frequency = frequency_mapping.get(frequency_str, 30)  # Default to monthly if not specified
-        recurring_transactions.append(RecurringTransaction(amount=amount, frequency=frequency, start_date=start_date))
-
+        recurring_transactions.append({'amount': amount, 'frequency': int(frequency), 'start_date': start_date})
 
     # Parse loan start date
     loan_start = datetime.strptime(loan_start_date, '%Y-%m-%d')
@@ -157,10 +137,6 @@ def update_graph(n_clicks, initial_assets, one_time_amounts, one_time_dates, rec
         duration=loan_duration,
         description="Custom Loan"
     )]
-
-    print("loan", loans)
-    print("transactions",transactions)
-    print("recurring transactions:",recurring_transactions)
 
     # Run financial projection
     dates, balances, loan_balances = financial_projection_with_loans(

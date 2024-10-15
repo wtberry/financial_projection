@@ -15,6 +15,30 @@ app = dash.Dash(__name__)
 app.layout = html.Div([
     html.H1("Financial Projection with Loans"),
 
+    # Date range selector (Start and End Date)
+    html.Div([
+        html.Label('Select Start Date:'),
+        dcc.DatePickerSingle(
+            id='start-date-picker',
+            date=datetime(2024, 10, 1),  # Default start date
+            display_format='YYYY-MM-DD',
+            min_date_allowed=datetime(2020, 1, 1),
+            max_date_allowed=datetime(2030, 12, 31)
+        )
+    ], style={'display': 'inline-block', 'margin-right': '20px'}),
+
+    html.Div([
+        html.Label('Select End Date:'),
+        dcc.DatePickerSingle(
+            id='end-date-picker',
+            date=datetime(2025, 10, 1),  # Default end date
+            display_format='YYYY-MM-DD',
+            min_date_allowed=datetime(2020, 1, 1),
+            max_date_allowed=datetime(2030, 12, 31)
+        )
+    ], style={'display': 'inline-block'}),
+
+
     # Input for initial assets
     html.Div([
         html.H3("Initial Assets"),
@@ -51,8 +75,14 @@ app.layout = html.Div([
         html.Label("Duration (months):"),
         dcc.Input(id='loan_duration', type='number', value=24),
         html.Label("Start Date (YYYY/MM/DD):"),
-        dcc.Input(id='loan_start_date', type='text', value=str(datetime.now().date())),
-    ]),
+        dcc.DatePickerSingle(
+            id='loan_start_date',
+            date=datetime(2024, 10, 1),  # Default start date
+            display_format='YYYY-MM-DD',
+            min_date_allowed=datetime(2020, 1, 1),
+            max_date_allowed=datetime(2099, 12, 31)
+        )
+    ], style={'display': 'inline-block', 'margin-right': '20px'}),
     
     # Button to run the simulation
     html.Button('Simulate', id='simulate_btn', n_clicks=0),
@@ -71,7 +101,14 @@ def add_one_time_transaction(n_clicks, existing_children):
     new_transaction_input = html.Div([
         html.Label(f'Transaction {n_clicks}:'),
         dcc.Input(id={'type': 'one_time_amount', 'index': n_clicks}, type='number', placeholder='Amount'),
-        dcc.Input(id={'type': 'one_time_date', 'index': n_clicks}, type='text', placeholder='YYYY/MM/DD'),
+        dcc.DatePickerSingle(
+            id='loan_start_date',
+            date=datetime(2024, 10, 1),  # Default start date
+            display_format='YYYY-MM-DD',
+            min_date_allowed=datetime(2020, 1, 1),
+            max_date_allowed=datetime(2099, 12, 31)
+        )
+    ], style={'display': 'inline-block', 'margin-right': '20px'}),
         html.Br()
     ])
     existing_children.append(new_transaction_input)
@@ -108,7 +145,7 @@ def add_recurring_transaction(n_clicks, existing_children):
 # Update graph when user clicks the simulate button
 @app.callback(
     Output('financial_projection_graph', 'figure'),
-    [Input('simulate_btn', 'n_clicks')],
+    [Input('start-date-picker', 'date'), Input('end-date-picker', 'date'), Input('simulate_btn', 'n_clicks')],
     [State('initial_assets', 'value'),
      State({'type': 'one_time_amount', 'index': dash.dependencies.ALL}, 'value'),
      State({'type': 'one_time_date', 'index': dash.dependencies.ALL}, 'value'),
@@ -122,7 +159,10 @@ def add_recurring_transaction(n_clicks, existing_children):
      State('loan_start_date', 'value')]
 )
 def update_graph(n_clicks, initial_assets, one_time_amounts, one_time_dates, recurring_amounts, recurring_frequencies,
-                 recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration, loan_start_date):
+                 recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration, loan_start_date, proj_start_date, proj_end_date):
+    
+    if proj_start_date is None or proj_end_date is None:
+        return dash.no_update  # Don't update graph if dates are not selected
     # Process one-time transactions
     transactions = []
     for amount, date_str in zip(one_time_amounts, one_time_dates):
@@ -164,7 +204,7 @@ def update_graph(n_clicks, initial_assets, one_time_amounts, one_time_dates, rec
 
     # Run financial projection
     dates, balances, loan_balances = financial_projection_with_loans(
-        initial_assets, transactions, recurring_transactions, loans
+        initial_assets, transactions, recurring_transactions, loans, proj_start_date, proj_end_date
     )
 
     # Create traces for the graph

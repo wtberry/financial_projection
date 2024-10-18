@@ -13,13 +13,14 @@ app = dash.Dash(__name__)
 
 # Define layout
 app.layout = html.Div([
+    
     html.H1("Financial Projection with Loans"),
 
     # Date range selector (Start and End Date)
     html.Div([
         html.Label('Select Start Date:'),
         dcc.DatePickerSingle(
-            id='start-date-picker',
+            id='proj_start_date',
             date=datetime(2024, 10, 1),  # Default start date
             display_format='YYYY-MM-DD',
             min_date_allowed=datetime(2020, 1, 1),
@@ -30,7 +31,7 @@ app.layout = html.Div([
     html.Div([
         html.Label('Select End Date:'),
         dcc.DatePickerSingle(
-            id='end-date-picker',
+            id='proj_end_date',
             date=datetime(2025, 10, 1),  # Default end date
             display_format='YYYY-MM-DD',
             min_date_allowed=datetime(2020, 1, 1),
@@ -102,16 +103,15 @@ def add_one_time_transaction(n_clicks, existing_children):
         html.Label(f'Transaction {n_clicks}:'),
         dcc.Input(id={'type': 'one_time_amount', 'index': n_clicks}, type='number', placeholder='Amount'),
         dcc.DatePickerSingle(
-            id='loan_start_date',
+            id='one_time_date',
             date=datetime(2024, 10, 1),  # Default start date
             display_format='YYYY-MM-DD',
             min_date_allowed=datetime(2020, 1, 1),
             max_date_allowed=datetime(2099, 12, 31)
         )
     ], style={'display': 'inline-block', 'margin-right': '20px'}),
-        html.Br()
-    ])
-    existing_children.append(new_transaction_input)
+
+    existing_children + [new_transaction_input]
     return existing_children
 
 # Callback to dynamically add recurring transaction inputs
@@ -145,7 +145,12 @@ def add_recurring_transaction(n_clicks, existing_children):
 # Update graph when user clicks the simulate button
 @app.callback(
     Output('financial_projection_graph', 'figure'),
-    [Input('start-date-picker', 'date'), Input('end-date-picker', 'date'), Input('simulate_btn', 'n_clicks')],
+    [
+        Input('simulate_btn', 'n_clicks'),
+        Input('proj_start_date', 'date'),  
+        Input('proj_end_date', 'date'),
+        Input('loan_start_date', 'date'),
+    ],
     [State('initial_assets', 'value'),
      State({'type': 'one_time_amount', 'index': dash.dependencies.ALL}, 'value'),
      State({'type': 'one_time_date', 'index': dash.dependencies.ALL}, 'value'),
@@ -155,16 +160,31 @@ def add_recurring_transaction(n_clicks, existing_children):
      State('loan_principal', 'value'),
      State('loan_interest', 'value'),   
      State('loan_payment', 'value'),
-     State('loan_duration', 'value'),
-     State('loan_start_date', 'value')]
+     State('loan_duration', 'value'),]
 )
-def update_graph(n_clicks, initial_assets, one_time_amounts, one_time_dates, recurring_amounts, recurring_frequencies,
-                 recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration, loan_start_date, proj_start_date, proj_end_date):
+def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, initial_assets, one_time_amounts, one_time_dates, recurring_amounts, recurring_frequencies,
+                 recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration):
     
+    print("all input:", n_clicks, proj_start_date, proj_end_date, loan_start_date, initial_assets, one_time_amounts, one_time_dates, recurring_amounts, recurring_frequencies,
+                 recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration)
     if proj_start_date is None or proj_end_date is None:
         return dash.no_update  # Don't update graph if dates are not selected
+
+    # Ensure that one_time_amounts and one_time_dates are lists
+    if not one_time_amounts or not one_time_dates:
+        one_time_amounts = []
+        one_time_dates = []
+
+    # Ensure recurring transaction fields are lists
+    if not recurring_amounts or not recurring_frequencies or not recurring_start_dates:
+        recurring_amounts =  []
+        recurring_frequencies =  []
+        recurring_start_dates = []
+
+
     # Process one-time transactions
     transactions = []
+    print("ONE_TIME", one_time_dates)
     for amount, date_str in zip(one_time_amounts, one_time_dates):
         date = datetime.strptime(date_str, '%Y-%m-%d')
         transactions.append(Transaction(amount, date))
@@ -179,14 +199,15 @@ def update_graph(n_clicks, initial_assets, one_time_amounts, one_time_dates, rec
 
     # Process recurring transactions
     recurring_transactions = []
+    print(recurring_amounts, recurring_frequencies, recurring_start_dates)
     for amount, frequency_str, start_date_str in zip(recurring_amounts, recurring_frequencies, recurring_start_dates):
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%dT00:00:00')
         frequency = frequency_mapping.get(frequency_str, 30)  # Default to monthly if not specified
         recurring_transactions.append(RecurringTransaction(amount=amount, frequency=frequency, start_date=start_date))
 
 
     # Parse loan start date
-    loan_start = datetime.strptime(loan_start_date, '%Y-%m-%d')
+    loan_start = datetime.strptime(loan_start_date, '%Y-%m-%dT00:00:00')
 
     # Simulate loan
     loans = [Loan(

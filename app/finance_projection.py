@@ -18,8 +18,8 @@ def financial_projection_with_loans(
     end_date
 ):
     # Ensure start and end dates are proper datetime objects
-    start_date = datetime.strptime(start_date, "%Y-%m-%d")
-    end_date = datetime.strptime(end_date, "%Y-%m-%d")
+    start_date = datetime.strptime(start_date, "%Y-%m-%dT00:00:00")
+    end_date = datetime.strptime(end_date, "%Y-%m-%dT00:00:00")
 
     # Create a list of dates between the start and end date
     projection_duration_days = (end_date - start_date).days + 1

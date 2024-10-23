@@ -3,8 +3,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
+
+from projection import Projection, RecurringTransaction, OneTimeTransaction
 from finance_projection import financial_projection_with_loans
-from transaction import RecurringTransaction, Transaction
+#from transaction import RecurringTransaction, Transaction
 from datetime import datetime
 from loan import Loan
 
@@ -127,13 +129,13 @@ def add_recurring_transaction(n_clicks, existing_children):
         dcc.Dropdown(
             id={'type': 'recurring_frequency', 'index': n_clicks},
             options=[
-                {'label': 'Daily', 'value': 'Daily'},
-                {'label': 'Weekly', 'value': 'Weekly'},
-                {'label': 'Monthly', 'value': 'Monthly'},
-                {'label': 'Yearly', 'value': 'Yearly'}
+                {'label': 'Daily', 'value': 'daily'},
+                {'label': 'Weekly', 'value': 'weekly'},
+                {'label': 'Monthly', 'value': 'monthly'},
+                {'label': 'Yearly', 'value': 'yearly'}
             ],
             placeholder="Frequency",
-            value='Monthly'
+            value='monthly'
         ),
         dcc.DatePickerSingle(
             id={'type': 'recurring_start_date', 'index': n_clicks},
@@ -185,29 +187,18 @@ def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, init
         recurring_frequencies =  []
         recurring_start_dates = []
 
+    projection = Projection(proj_start_date, proj_end_date, initial_assets)
 
-    # Process one-time transactions
-    transactions = []
-    print("ONE_TIME", one_time_dates)
+
+    # add one-time transactions
     for amount, date_str in zip(one_time_amounts, one_time_dates):
         date = datetime.strptime(date_str, '%Y-%m-%d')
-        transactions.append(Transaction(amount, date))
+        projection.append(OneTimeTransaction(amount, date))
 
-    # Convert frequency strings to number of days
-    frequency_mapping = {
-        'Daily': 1,
-        'Weekly': 7,
-        'Monthly': 30,   # Approximate for simplicity
-        'Yearly': 365
-    }
-
-    # Process recurring transactions
-    recurring_transactions = []
-    print(recurring_amounts, recurring_frequencies, recurring_start_dates)
+    # add recurring transactions
     for amount, frequency_str, start_date_str in zip(recurring_amounts, recurring_frequencies, recurring_start_dates):
         start_date = datetime.strptime(start_date_str, '%Y-%m-%dT00:00:00')
-        frequency = frequency_mapping.get(frequency_str, 30)  # Default to monthly if not specified
-        recurring_transactions.append(RecurringTransaction(amount=amount, frequency=frequency, start_date=start_date))
+        projection.add(RecurringTransaction(amount=amount, frequency=frequency_str, start_date=start_date))
 
 
     # Parse loan start date
@@ -223,30 +214,34 @@ def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, init
         description="Custom Loan"
     )]
 
-    print("loan", loans)
-    print("transactions",transactions)
-    print("recurring transactions:",recurring_transactions)
+    # print("loan", loans)
+    # print("transactions",transactions)
+    # print("recurring transactions:",recurring_transactions)
 
-    # Run financial projection
-    dates, balances, loan_balances = financial_projection_with_loans(
-        initial_assets, transactions, recurring_transactions, loans, proj_start_date, proj_end_date
-    )
-
+    # # Run financial projection
+    # dates, balances, loan_balances = financial_projection_with_loans(
+    #     initial_assets, transactions, recurring_transactions, loans, proj_start_date, proj_end_date
+    # )
+    results = projection.run_projection()
+    dates, balances = [], []
+    for date, balance in results:
+        dates.append(date)
+        balances.append(balance)
     # Create traces for the graph
     balance_trace = go.Scatter(
         x=dates, y=balances, mode='lines+markers', name='Total Balance'
     )
 
-    loan_traces = []
-    for loan, loan_balance in loan_balances.items():
-        loan_traces.append(
-            go.Scatter(
-                x=dates, y=loan_balance, mode='lines+markers', name=f"{loan} Remaining Balance"
-            )
-        )
+    # loan_traces = []
+    # for loan, loan_balance in loan_balances.items():
+    #     loan_traces.append(
+    #         go.Scatter(
+    #             x=dates, y=loan_balance, mode='lines+markers', name=f"{loan} Remaining Balance"
+    #         )
+    #     )
 
     return {
-        'data': [balance_trace] + loan_traces,
+        'data': [balance_trace], #+ loan_traces,
         'layout': go.Layout(
             title="Financial Projection",
             xaxis={'title': 'Date'},

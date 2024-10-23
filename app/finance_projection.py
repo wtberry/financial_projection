@@ -46,6 +46,7 @@ def financial_projection_with_loans(
         # Apply loan payments (only if the balance is > 0)
         for loan in loans:
             if current_loan_balances[loan] > 0:
+                # Fix here to use apply_payment() instead
                 principal_payment, interest = loan.monthly_payment(current_loan_balances[loan])
                 current_balance -= (principal_payment + interest)  # Deduct the loan payment
                 current_loan_balances[loan] -= principal_payment

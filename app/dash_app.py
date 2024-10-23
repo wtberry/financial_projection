@@ -149,16 +149,12 @@ def add_recurring_transaction(n_clicks, existing_children):
 # Update graph when user clicks the simulate button
 @app.callback(
     Output('financial_projection_graph', 'figure'),
-<<<<<<< HEAD
     [
         Input('simulate_btn', 'n_clicks'),
         Input('proj_start_date', 'date'),  
         Input('proj_end_date', 'date'),
         Input('loan_start_date', 'date'),
     ],
-=======
-    [Input('proj_start_date', 'date'), Input('proj_end_date', 'date'), Input('simulate_btn', 'n_clicks')],   
->>>>>>> 94d5fc1 (debug: some errors by gpt)
     [State('initial_assets', 'value'),
      State({'type': 'one_time_amount', 'index': dash.dependencies.ALL}, 'value'),
      State({'type': 'one_time_date', 'index': dash.dependencies.ALL}, 'value'),
@@ -170,19 +166,13 @@ def add_recurring_transaction(n_clicks, existing_children):
      State('loan_payment', 'value'),
      State('loan_duration', 'value'),]
 )
-<<<<<<< HEAD
 def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, initial_assets, one_time_amounts, one_time_dates, recurring_amounts, recurring_frequencies,
                  recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration):
-=======
-def update_graph(n_clicks, proj_start_date, proj_end_date, initial_assets, one_time_amounts, one_time_dates, recurring_amounts, recurring_frequencies,
-                 recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration, loan_start_date):
->>>>>>> 94d5fc1 (debug: some errors by gpt)
     
     print("all input:", n_clicks, proj_start_date, proj_end_date, loan_start_date, initial_assets, one_time_amounts, one_time_dates, recurring_amounts, recurring_frequencies,
                  recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration)
     if proj_start_date is None or proj_end_date is None:
         return dash.no_update  # Don't update graph if dates are not selected
-<<<<<<< HEAD
 
     # Ensure that one_time_amounts and one_time_dates are lists
     if not one_time_amounts or not one_time_dates:
@@ -196,15 +186,6 @@ def update_graph(n_clicks, proj_start_date, proj_end_date, initial_assets, one_t
         recurring_start_dates = []
 
 
-=======
-    if not one_time_amounts or not one_time_dates:
-        one_time_amounts = []
-        one_time_dates = []
-    if not recurring_amounts or not recurring_frequencies or not recurring_start_dates:
-        recurring_amounts = []
-        recurring_frequencies = []
-        recurring_start_dates = []
->>>>>>> 94d5fc1 (debug: some errors by gpt)
     # Process one-time transactions
     transactions = []
     print("ONE_TIME", one_time_dates)

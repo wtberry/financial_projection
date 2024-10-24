@@ -113,7 +113,7 @@ def add_one_time_transaction(n_clicks, existing_children):
         )
     ], style={'display': 'inline-block', 'margin-right': '20px'}),
 
-    existing_children + [new_transaction_input]
+    existing_children.append(new_transaction_input)
     return existing_children
 
 # Callback to dynamically add recurring transaction inputs
@@ -187,6 +187,9 @@ def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, init
         recurring_frequencies =  []
         recurring_start_dates = []
 
+    proj_start_date = datetime.fromisoformat(proj_start_date)
+    proj_end_date = datetime.fromisoformat(proj_end_date)
+    print("proj date:", type(proj_start_date))
     projection = Projection(proj_start_date, proj_end_date, initial_assets)
 
 

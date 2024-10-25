@@ -109,7 +109,7 @@ def add_one_time_transaction(n_clicks, children):
         html.Label(f'Transaction {n_clicks}:'),
         dcc.Input(id={'type': 'one_time_amount', 'index': n_clicks}, type='number', placeholder='Amount'),
         dcc.DatePickerSingle(
-            id='one_time_date',
+            id={'type': 'one_time_date', 'index': n_clicks},
             date=datetime(2024, 10, 1),  # Default start date
             display_format='YYYY-MM-DD',
             min_date_allowed=datetime(2020, 1, 1),
@@ -166,10 +166,10 @@ def add_recurring_transaction(n_clicks, children):
     ],
     [State('initial_assets', 'value'),
      State({'type': 'one_time_amount', 'index': dash.dependencies.ALL}, 'value'),
-     State({'type': 'one_time_date', 'index': dash.dependencies.ALL}, 'value'),
+     State({'type': 'one_time_date', 'index': dash.dependencies.ALL}, 'date'),
      State({'type': 'recurring_amount', 'index': dash.dependencies.ALL}, 'value'),
      State({'type': 'recurring_frequency', 'index': dash.dependencies.ALL}, 'value'),
-     State({'type': 'recurring_start_date', 'index': dash.dependencies.ALL}, 'value'),
+     State({'type': 'recurring_start_date', 'index': dash.dependencies.ALL}, 'date'),
      State('loan_principal', 'value'),
      State('loan_interest', 'value'),   
      State('loan_payment', 'value'),
@@ -182,6 +182,9 @@ def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, init
                  recurring_start_dates, loan_principal, loan_interest, loan_payment, loan_duration)
     if proj_start_date is None or proj_end_date is None:
         return dash.no_update  # Don't update graph if dates are not selected
+    
+    print("one_itme", one_time_amounts, one_time_dates)
+    print("recurring", recurring_amounts, recurring_frequencies, recurring_start_dates)
 
     # Ensure that one_time_amounts and one_time_dates are lists
     if not one_time_amounts or not one_time_dates:
@@ -202,13 +205,13 @@ def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, init
 
     # add one-time transactions
     for amount, date_str in zip(one_time_amounts, one_time_dates):
-        date = datetime.strptime(date_str, '%Y-%m-%d')
-        projection.append(OneTimeTransaction(amount, date))
+        date = datetime.strptime(date_str, '%Y-%m-%dT00:00:00')
+        projection.add_transaction(OneTimeTransaction(amount, date))
 
     # add recurring transactions
     for amount, frequency_str, start_date_str in zip(recurring_amounts, recurring_frequencies, recurring_start_dates):
         start_date = datetime.strptime(start_date_str, '%Y-%m-%dT00:00:00')
-        projection.add(RecurringTransaction(amount=amount, frequency=frequency_str, start_date=start_date))
+        projection.add_transaction(RecurringTransaction(amount=amount, frequency=frequency_str, start_date=start_date))
 
 
     # Parse loan start date

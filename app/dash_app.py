@@ -205,12 +205,12 @@ def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, init
 
     # add one-time transactions
     for amount, date_str in zip(one_time_amounts, one_time_dates):
-        date = datetime.strptime(date_str, '%Y-%m-%dT00:00:00')
+        date = datetime.strptime(date_str, '%Y-%m-%d')
         projection.add_transaction(OneTimeTransaction(amount, date))
 
     # add recurring transactions
     for amount, frequency_str, start_date_str in zip(recurring_amounts, recurring_frequencies, recurring_start_dates):
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%dT00:00:00')
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
         projection.add_transaction(RecurringTransaction(amount=amount, frequency=frequency_str, start_date=start_date))
 
 

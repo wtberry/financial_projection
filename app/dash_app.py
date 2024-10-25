@@ -100,7 +100,11 @@ app.layout = html.Div([
     [Input('add_one_time_btn', 'n_clicks')],
     [State('one_time_transaction_container', 'children')]
 )
-def add_one_time_transaction(n_clicks, existing_children):
+def add_one_time_transaction(n_clicks, children):
+    if n_clicks < 1:
+        return children
+    elif children is None:
+        children = []
     new_transaction_input = html.Div([
         html.Label(f'Transaction {n_clicks}:'),
         dcc.Input(id={'type': 'one_time_amount', 'index': n_clicks}, type='number', placeholder='Amount'),
@@ -111,10 +115,9 @@ def add_one_time_transaction(n_clicks, existing_children):
             min_date_allowed=datetime(2020, 1, 1),
             max_date_allowed=datetime(2099, 12, 31)
         )
-    ], style={'display': 'inline-block', 'margin-right': '20px'}),
-
-    existing_children.append(new_transaction_input)
-    return existing_children
+    ], style={'display': 'inline-block', 'margin-right': '20px'})
+    children.append(new_transaction_input)
+    return children
 
 # Callback to dynamically add recurring transaction inputs
 @app.callback(
@@ -122,7 +125,11 @@ def add_one_time_transaction(n_clicks, existing_children):
     [Input('add_recurring_btn', 'n_clicks')],
     [State('recurring_transaction_container', 'children')]
 )
-def add_recurring_transaction(n_clicks, existing_children):
+def add_recurring_transaction(n_clicks, children):
+    if n_clicks < 1:
+        return children
+    elif children is None:
+        children = []
     new_transaction_input = html.Div([
         html.Label(f'Recurring Transaction {n_clicks}:'),
         dcc.Input(id={'type': 'recurring_amount', 'index': n_clicks}, type='number', placeholder='Amount', value=380000),
@@ -144,8 +151,8 @@ def add_recurring_transaction(n_clicks, existing_children):
         ),
         html.Br()
     ])
-    existing_children + [new_transaction_input]
-    return existing_children
+    children.append(new_transaction_input)
+    return children
 
 
 # Update graph when user clicks the simulate button

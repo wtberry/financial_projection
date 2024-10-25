@@ -21,25 +21,14 @@ app.layout = html.Div([
     # Date range selector (Start and End Date)
     html.Div([
         html.Label('Select Start Date:'),
-        dcc.DatePickerSingle(
-            id='proj_start_date',
-            date=datetime(2024, 10, 1),  # Default start date
-            display_format='YYYY-MM-DD',
+        dcc.DatePickerRange(
+            id='proj_date_range',
             min_date_allowed=datetime(2020, 1, 1),
-            max_date_allowed=datetime(2030, 12, 31)
+            max_date_allowed=datetime(2030, 12, 31),
+            initial_visible_month=datetime(2024, 11, 1),
+            end_date=datetime(2024, 11, 25)
         )
     ], style={'display': 'inline-block', 'margin-right': '20px'}),
-
-    html.Div([
-        html.Label('Select End Date:'),
-        dcc.DatePickerSingle(
-            id='proj_end_date',
-            date=datetime(2025, 10, 1),  # Default end date
-            display_format='YYYY-MM-DD',
-            min_date_allowed=datetime(2020, 1, 1),
-            max_date_allowed=datetime(2030, 12, 31)
-        )
-    ], style={'display': 'inline-block'}),
 
 
     # Input for initial assets
@@ -160,8 +149,8 @@ def add_recurring_transaction(n_clicks, children):
     Output('financial_projection_graph', 'figure'),
     [
         Input('simulate_btn', 'n_clicks'),
-        Input('proj_start_date', 'date'),  
-        Input('proj_end_date', 'date'),
+        Input('proj_date_range', 'start_date'),  
+        Input('proj_date_range', 'end_date'),
         Input('loan_start_date', 'date'),
     ],
     [State('initial_assets', 'value'),

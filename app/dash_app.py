@@ -1,3 +1,5 @@
+import os
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -11,7 +13,9 @@ from datetime import datetime
 from loan import Loan
 
 # Initialize Dash app
-app = dash.Dash(__name__)
+app = dash.Dash(
+    name='finance_projection'
+)
 
 # Define layout
 app.layout = html.Div([
@@ -252,5 +256,10 @@ def update_graph(n_clicks, proj_start_date, proj_end_date, loan_start_date, init
         )
     }
 
+
+# read host and port from environment variables
+host = os.environ.get('HOST', 'localhost')
+port = os.environ.get('PORT', 8050)
+
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(host=host, port=port, debug=True)

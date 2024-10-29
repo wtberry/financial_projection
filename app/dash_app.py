@@ -69,37 +69,6 @@ with transaction_columns[3]:
     st.selectbox("Type", options=["One-time", "Recurring"], key="transaction_type", index=0, on_change=add_frequency(transaction_columns))
 st.button("Add Transaction", on_click=add_transaction)
 
-# # One-time transactions
-# st.sidebar.header("Add Transactions")
-# if 'one_time_transactions' not in st.session_state:
-#     st.session_state['one_time_transactions'] = []
-
-# if st.sidebar.button("Add One-time Transaction"):
-#     st.session_state['one_time_transactions'].append({
-#         "amount": st.sidebar.number_input("Amount", key=f"one_time_amount_{len(st.session_state['one_time_transactions'])}"),
-#         "date": st.sidebar.date_input("Date", value=datetime(2024, 10, 1), key=f"one_time_date_{len(st.session_state['one_time_transactions'])}"),
-#         "description": st.sidebar.text_input("Description", key=f"one_time_description_{len(st.session_state['one_time_transactions'])}"),
-#         "add": st.sidebar.button("Add")
-#     })
-
-# # Recurring Transactions
-# st.sidebar.header("Recurring Transactions")
-# if 'recurring_transactions' not in st.session_state:
-#     st.session_state['recurring_transactions'] = []
-
-# if st.sidebar.button("Add Recurring Transaction"):
-#     new_transaction = {
-#         "amount": st.sidebar.number_input("Amount", key=f"rec_amount_{len(st.session_state['recurring_transactions'])}"),
-#         "frequency": st.sidebar.selectbox(
-#             "Frequency", options=["weekly", "monthly", "yearly"],
-#             key=f"rec_freq_{len(st.session_state['recurring_transactions'])}"
-#         ),
-#         "start_date": st.sidebar.date_input(
-#             "Start Date", value=datetime(2024, 10, 1),
-#             key=f"rec_date_{len(st.session_state['recurring_transactions'])}"
-#         )
-#     }
-#     st.session_state['recurring_transactions'].append(new_transaction)
 
 # # Loan inputs
 # st.sidebar.header("Loan Parameters")
@@ -114,17 +83,19 @@ if st.button("Simulate"):
     projection = Projection(proj_start_date, proj_end_date, initial_assets)
 
     # Add one-time transactions
-    for t in st.session_state['one_time_transactions']:
-        amount = t['amount']
-        date = t['date']
-        projection.add_transaction(OneTimeTransaction(amount, date))
+    for index, row in st.session_state.transactions.iterrows():
+        if row["type"] == "One-time":
+            amount = row["amount"]
+            date = row["date"]
+            description = row["description"]
+            projection.add_transaction(OneTimeTransaction(amount, date, description))
+        elif row["type"] == "Recurring":
+            amount = row["amount"]
+            frequency = row["frequency"]
+            start_date = row["date"]
+            description = row["description"]
+            projection.add_transaction(RecurringTransaction(amount, start_date, frequency, description))
 
-    # Add recurring transactions
-    for t in st.session_state['recurring_transactions']:
-        amount = t['amount']
-        frequency = t['frequency']
-        start_date = t['start_date']
-        projection.add_transaction(RecurringTransaction(amount, start_date, frequency))
 
     # # Simulate loan
     # loan_start = loan_start_date
@@ -139,14 +110,15 @@ if st.button("Simulate"):
 
     # Run financial projection
     results = projection.run_projection()
-    dates, balances = [], []
-    for date, balance in results:
+    dates, balances, descriptions = [], [], []
+    for date, balance, description in results:
         dates.append(date)
         balances.append(balance)
+        descriptions.append(description)
 
     # Create traces for the graph
     balance_trace = go.Scatter(
-        x=dates, y=balances, mode='lines+markers', name='Total Balance'
+        x=dates, y=balances, mode='lines+markers', name='Total Balance', text=descriptions
     )
 
     # Display the graph

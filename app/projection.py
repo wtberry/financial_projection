@@ -13,6 +13,10 @@ class Transaction(ABC):
     def get_transaction_value(self, target_date: datetime):
         pass
 
+    @abstractmethod
+    def get_description(self, target_date: datetime):
+        pass
+
 
 class OneTimeTransaction(Transaction):
     def __init__(self, amount: float, date: datetime, description: str = ""):
@@ -22,6 +26,8 @@ class OneTimeTransaction(Transaction):
         # Only include the transaction if it occurs before or on the target date
         return self.amount if self.date == target_date else 0.0
 
+    def get_description(self, target_date):
+        return self.description if self.date == target_date else ""
 
 class RecurringTransaction(Transaction):
     def __init__(self, amount: float, start_date: datetime, frequency: str, description: str = ""):
@@ -37,6 +43,9 @@ class RecurringTransaction(Transaction):
         if self._is_occurrence_on_date(target_date):
             return self.amount
         return 0.0
+    
+    def get_description(self, target_date):
+        return self.description if self.date == target_date else ""
     
     def _is_occurrence_on_date(self, target_date: datetime):
         """Check if the transaction occurs on the target date."""
@@ -71,9 +80,10 @@ class Projection:
             # Calculate the sum of all transaction values on this date
             daily_total = sum(t.get_transaction_value(current_date) for t in self.transactions)
             balance += daily_total
-            
+            # get the description of the transaction
+            description = "\n".join([t.get_description(current_date) for t in self.transactions])
             # Save the current date and balance for tracking purposes
-            projection_results.append((current_date, balance))
+            projection_results.append((current_date, balance, description))
             
             # Move to the next day (could adjust to weekly/monthly for efficiency)
             current_date += timedelta(days=1)

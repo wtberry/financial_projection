@@ -3,3 +3,8 @@ dash-core-components
 dash-html-components
 dash-bootstrap-components
 plotly
+pandas
+pygwalker
+streamlit
+streamlit-authenticator
+watchdog

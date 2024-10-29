@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import plotly.graph_objs as go
 from datetime import datetime
+import pandas as pd
 
 from projection import Projection, RecurringTransaction, OneTimeTransaction
 from loan import Loan
@@ -9,7 +10,7 @@ from loan import Loan
 # Initialize Streamlit app
 st.set_page_config(page_title="Financial Projection with Loans")
 
-st.title("Financial Projection with Loans")
+st.title("Financial Projection with Loans and Transactions")
 
 # Date range selector (Start and End Date)
 proj_start_date = st.date_input(
@@ -30,43 +31,83 @@ initial_assets = st.number_input("Initial Assets", value=10000)
 
 st.sidebar.title("Transactions")
 
-# One-time transactions
-st.sidebar.header("One-time Transactions")
-if 'one_time_transactions' not in st.session_state:
-    st.session_state['one_time_transactions'] = []
+# data management
+if "transactions" not in st.session_state:
+    transactions = pd.DataFrame(columns=["amount", "date", "description", "type", "frequency"])
+    st.session_state["transactions"] = transactions
 
-if st.sidebar.button("Add One-time Transaction"):
-    st.session_state['one_time_transactions'].append({
-        "amount": st.sidebar.number_input("Amount", key=len(st.session_state['one_time_transactions'])),
-        "date": st.sidebar.date_input("Date", value=datetime(2024, 10, 1), key=len(st.session_state['one_time_transactions'])),
-    })
+transactions = st.session_state["transactions"]
+# display transactions
+st.header("Added Transactions")
+st.dataframe(transactions)
 
-# Recurring Transactions
-st.sidebar.header("Recurring Transactions")
-if 'recurring_transactions' not in st.session_state:
-    st.session_state['recurring_transactions'] = []
+# define callbacks to add transactions
+def add_transaction():
+    row = pd.DataFrame(
+        {"amount": [st.session_state.input_amount],
+         "date": [st.session_state.input_date],
+         "description": [st.session_state.input_description],
+         "type": [st.session_state.transaction_type],
+         "frequency": [st.session_state.input_frequency]})
+    st.session_state.transactions = pd.concat([st.session_state.transactions, row])
 
-if st.sidebar.button("Add Recurring Transaction"):
-    new_transaction = {
-        "amount": st.sidebar.number_input("Amount", key=f"rec_amount_{len(st.session_state['recurring_transactions'])}"),
-        "frequency": st.sidebar.selectbox(
-            "Frequency", options=["weekly", "monthly", "yearly"],
-            key=f"rec_freq_{len(st.session_state['recurring_transactions'])}"
-        ),
-        "start_date": st.sidebar.date_input(
-            "Start Date", value=datetime(2024, 10, 1),
-            key=f"rec_date_{len(st.session_state['recurring_transactions'])}"
-        )
-    }
-    st.session_state['recurring_transactions'].append(new_transaction)
+def add_frequency(transaction_columns):
+    if "transaction_type" in st.session_state and st.session_state.transaction_type == "Recurring":
+        with transaction_columns[4]:
+            st.selectbox("Frequency", options=["daily", "weekly", "monthly", "yearly"], key="input_frequency")
+    else:
+        st.session_state.input_frequency = None
 
-# Loan inputs
-st.sidebar.header("Loan Parameters")
-loan_principal = st.sidebar.number_input("Principal", value=5000)
-loan_interest = st.sidebar.number_input("Interest Rate (%)", value=5)
-loan_payment = st.sidebar.number_input("Monthly Payment", value=200)
-loan_duration = st.sidebar.number_input("Duration (months)", value=24)
-loan_start_date = st.sidebar.date_input("Start Date", value=datetime(2024, 10, 1))
+transaction_columns = st.columns(5)
+with transaction_columns[0]:
+    st.number_input("Amount", value=0, key="input_amount")
+with transaction_columns[1]:
+    st.date_input("Date", value=datetime(2024, 10, 1), key="input_date")
+with transaction_columns[2]:
+    st.text_input("Description", key="input_description")
+with transaction_columns[3]:
+    st.selectbox("Type", options=["One-time", "Recurring"], key="transaction_type", index=0, on_change=add_frequency(transaction_columns))
+st.button("Add Transaction", on_click=add_transaction)
+
+# # One-time transactions
+# st.sidebar.header("Add Transactions")
+# if 'one_time_transactions' not in st.session_state:
+#     st.session_state['one_time_transactions'] = []
+
+# if st.sidebar.button("Add One-time Transaction"):
+#     st.session_state['one_time_transactions'].append({
+#         "amount": st.sidebar.number_input("Amount", key=f"one_time_amount_{len(st.session_state['one_time_transactions'])}"),
+#         "date": st.sidebar.date_input("Date", value=datetime(2024, 10, 1), key=f"one_time_date_{len(st.session_state['one_time_transactions'])}"),
+#         "description": st.sidebar.text_input("Description", key=f"one_time_description_{len(st.session_state['one_time_transactions'])}"),
+#         "add": st.sidebar.button("Add")
+#     })
+
+# # Recurring Transactions
+# st.sidebar.header("Recurring Transactions")
+# if 'recurring_transactions' not in st.session_state:
+#     st.session_state['recurring_transactions'] = []
+
+# if st.sidebar.button("Add Recurring Transaction"):
+#     new_transaction = {
+#         "amount": st.sidebar.number_input("Amount", key=f"rec_amount_{len(st.session_state['recurring_transactions'])}"),
+#         "frequency": st.sidebar.selectbox(
+#             "Frequency", options=["weekly", "monthly", "yearly"],
+#             key=f"rec_freq_{len(st.session_state['recurring_transactions'])}"
+#         ),
+#         "start_date": st.sidebar.date_input(
+#             "Start Date", value=datetime(2024, 10, 1),
+#             key=f"rec_date_{len(st.session_state['recurring_transactions'])}"
+#         )
+#     }
+#     st.session_state['recurring_transactions'].append(new_transaction)
+
+# # Loan inputs
+# st.sidebar.header("Loan Parameters")
+# loan_principal = st.sidebar.number_input("Principal", value=5000)
+# loan_interest = st.sidebar.number_input("Interest Rate (%)", value=5)
+# loan_payment = st.sidebar.number_input("Monthly Payment", value=200)
+# loan_duration = st.sidebar.number_input("Duration (months)", value=24)
+# loan_start_date = st.sidebar.date_input("Start Date", value=datetime(2024, 10, 1))
 
 # Run simulation button
 if st.button("Simulate"):
@@ -85,16 +126,16 @@ if st.button("Simulate"):
         start_date = t['start_date']
         projection.add_transaction(RecurringTransaction(amount, start_date, frequency))
 
-    # Simulate loan
-    loan_start = loan_start_date
-    loans = [Loan(
-        principal=loan_principal,
-        interest_rate=loan_interest / 100,
-        payment=loan_payment,
-        start_date=loan_start,
-        duration=loan_duration,
-        description="Custom Loan"
-    )]
+    # # Simulate loan
+    # loan_start = loan_start_date
+    # loans = [Loan(
+    #     principal=loan_principal,
+    #     interest_rate=loan_interest / 100,
+    #     payment=loan_payment,
+    #     start_date=loan_start,
+    #     duration=loan_duration,
+    #     description="Custom Loan"
+    # )]
 
     # Run financial projection
     results = projection.run_projection()

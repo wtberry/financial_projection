@@ -7,6 +7,65 @@ import pandas as pd
 from projection import Projection, RecurringTransaction, OneTimeTransaction
 from loan import Loan
 
+
+
+# Define callbacks to add transactions
+# define callbacks to add transactions
+def update_data_editor():
+    """Update the data editor with the new transactions from session state."""
+    if "transactions" not in st.session_state:
+        raise ValueError("Transactions not found in session state.")
+    transactions_editor = st.data_editor(
+        data=st.session_state.transactions,
+        key="transactions_editor",
+        num_rows="dynamic",
+        column_config={
+            "amount":st.column_config.NumberColumn(
+                required=True,
+                disabled=True
+            ),
+            "date":st.column_config.DateColumn(
+                required=True,
+                disabled=True
+            ),
+            "description":st.column_config.TextColumn(
+                required=True,
+                disabled=True
+            ),
+            "type":st.column_config.SelectboxColumn(
+                options=["One-time", "Recurring"],
+                required=True,
+                disabled=True
+            ),
+            "frequency":st.column_config.SelectboxColumn(
+                options=["daily", "weekly", "monthly", "yearly"],
+                required=True,
+                disabled=True
+            )
+        }
+    )
+    st.session_state.transactions = transactions_editor
+
+    
+def add_transaction():
+    row = pd.DataFrame(
+        {"amount": [st.session_state.input_amount],
+         "date": [st.session_state.input_date],
+         "description": [st.session_state.input_description],
+         "type": [st.session_state.transaction_type],
+         "frequency": [st.session_state.input_frequency]})
+    st.session_state.transactions = pd.concat([st.session_state.transactions, row])
+
+def add_frequency(transaction_columns):
+    if "transaction_type" in st.session_state and st.session_state.transaction_type == "Recurring":
+        with transaction_columns[4]:
+            st.selectbox("Frequency", options=["daily", "weekly", "monthly", "yearly"], key="input_frequency")
+    else:
+        st.session_state.input_frequency = None
+
+
+
+
 # Initialize Streamlit app
 st.set_page_config(page_title="Financial Projection with Loans")
 
@@ -31,32 +90,18 @@ initial_assets = st.number_input("Initial Assets", value=10000)
 
 st.sidebar.title("Transactions")
 
+# display and set data_editor for transactions
+st.header("Added Transactions")
+st.write("Use the data editor or the input fields below to add transactions.")
+st.write("Transaction type and frequency is only editable through the input fields.")
+
 # data management
 if "transactions" not in st.session_state:
     transactions = pd.DataFrame(columns=["amount", "date", "description", "type", "frequency"])
-    st.session_state["transactions"] = transactions
+    st.session_state["transactions"] = transactions 
 
-transactions = st.session_state["transactions"]
-# display transactions
-st.header("Added Transactions")
-st.dataframe(transactions)
-
-# define callbacks to add transactions
-def add_transaction():
-    row = pd.DataFrame(
-        {"amount": [st.session_state.input_amount],
-         "date": [st.session_state.input_date],
-         "description": [st.session_state.input_description],
-         "type": [st.session_state.transaction_type],
-         "frequency": [st.session_state.input_frequency]})
-    st.session_state.transactions = pd.concat([st.session_state.transactions, row])
-
-def add_frequency(transaction_columns):
-    if "transaction_type" in st.session_state and st.session_state.transaction_type == "Recurring":
-        with transaction_columns[4]:
-            st.selectbox("Frequency", options=["daily", "weekly", "monthly", "yearly"], key="input_frequency")
-    else:
-        st.session_state.input_frequency = None
+# update data editor
+update_data_editor()
 
 transaction_columns = st.columns(5)
 with transaction_columns[0]:

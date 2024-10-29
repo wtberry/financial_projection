@@ -45,7 +45,7 @@ class RecurringTransaction(Transaction):
         return 0.0
     
     def get_description(self, target_date):
-        return self.description if self.date == target_date else ""
+        return self.description if self._is_occurrence_on_date(target_date) else ""
     
     def _is_occurrence_on_date(self, target_date: datetime):
         """Check if the transaction occurs on the target date."""
@@ -55,6 +55,8 @@ class RecurringTransaction(Transaction):
             return (target_date - self.date).days % 7 == 0 and target_date >= self.date
         elif self.frequency == 'yearly':
             return target_date.month == self.date.month and target_date.day == self.date.day and target_date >= self.date
+        elif self.frequency == 'daily':
+            return target_date.day == self.date.day and target_date >= self.date
         else:
             raise ValueError("Unsupported frequency")
 
